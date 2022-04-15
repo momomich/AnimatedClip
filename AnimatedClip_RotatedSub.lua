@@ -6,10 +6,13 @@ script_modified = "15th April 2022"
 
 include("karaskel.lua")
 
+--frame duration
 local frame_dur = aegisub.video_size() and (aegisub.ms_from_frame(101)-aegisub.ms_from_frame(1)) / 100 or 41.71
 
+--frame by frame
 function frames(starts, ends)
 	local cur_start_time = starts
+
 	local function next_frame()
 		if cur_start_time >= ends then
 			return nil
@@ -22,8 +25,10 @@ function frames(starts, ends)
 	return next_frame
 end
 
+--animate clip by frame
 function frame_generator(subs, sel, rotate)
 	function clip_pos(leftbottom_x, leftbottom_y, rightbottom_x, rightbottom_y, step_x, step_y)
+		--step_x and step_y calculated below
 		leftbottom_x = leftbottom_x - step_x
 		leftbottom_y = leftbottom_y + step_y
 		rightbottom_x = rightbottom_x - step_x
@@ -32,13 +37,16 @@ function frame_generator(subs, sel, rotate)
 	end
 	local meta, styles = karaskel.collect_head(subs)
 	local add = 0
+	--for each original line to be animated
 	for _, i in ipairs(sel) do
 		local line = subs[i+add]
 		karaskel.preproc_line(subs, meta, styles, line)
-		local pos_s, _, pos_x, pos_y = string.find(line.text, "{[^}]*\\pos%(([^,%)]*),([^,%)]*)%).*}")
+		local pos_s, _, pos_x, pos_y = string.find(line.text, "{[^}]*\\pos%(([^,%)]*),([^,%)]*)%).*}")	--point coordinate from string
 		local frame_count = math.ceil(line.duration / frame_dur)
 		local step_x = line.height * math.sin(math.rad(rotate)) / (frame_count - 1)
 		local step_y = line.height * math.cos(math.rad(rotate)) / (frame_count - 1)
+
+		--initialization
 		local lefttop_x = pos_x - line.width * 0.5 * math.cos(math.rad(rotate)) + line.height * math.sin(math.rad(rotate))
 		local lefttop_y = pos_y - line.width * 0.5 * math.sin(math.rad(rotate)) - line.height * math.cos(math.rad(rotate))
 		local righttop_x = pos_x + line.width * 0.5 * math.cos(math.rad(rotate)) + line.height * math.sin(math.rad(rotate))
@@ -48,6 +56,7 @@ function frame_generator(subs, sel, rotate)
 		local rightbottom_x = righttop_x
 		local rightbottom_y = righttop_y
 
+		--insert line to subs by frame
 		for s, e in frames(line.start_time, line.end_time) do
 			local nline = table.copy(line)
 			nline.start_time = s
